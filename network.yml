@@ -1,0 +1,18 @@
+Description: >
+  This is a cloudformation script to deploy a set of aws services infrastructure
+  for a higly available web-app
+
+Parameters:
+  Description: Name of the higly available web app running on this infrastructure
+  Type: String
+
+Resources:
+
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+         Value: !Ref EnvironmentName

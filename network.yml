@@ -8,6 +8,26 @@ Parameters:
     Description: Name of the higly available web app running on this infrastructure
     Type: String
 
+  VpcCIDR:
+    Description: Range of IP for vpc.
+    Type: String
+
+  PublicSubnetACIDR:
+    Description: Range of IP for the public subnet in AZ A.
+    Type: String
+
+  PublicSubnetBCIDR:
+    Description: Range of IP for the public subnet in AZ B.
+    Type: String
+
+  PrivateSubnetACIDR:
+    Description: Range of IP for the private subnet in AZ A
+    Type: String
+
+  PrivateSubnetBCIDR:
+    Description: Range of IP for private subnet in AZ B
+    Type: String
+
 Resources:
 
   Vpc:
@@ -44,7 +64,7 @@ Resources:
           Value: !Sub ${EnvironmentName} Public Subnet (AZA)
 
   PublicSubnetB:
-    Type: AWS::EC2:Subnet
+    Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref Vpc
       AvailabilityZone: !Select [ 0, !GetAZs '']
@@ -55,7 +75,7 @@ Resources:
           Value: !Sub ${EnvironmentName} Public Subnet (AZB)
 
   PrivateSubnetA:
-    Type: AWS::EC2:Subnet
+    Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref Vpc
       AvailabilityZone: !Select [ 0, !GetAZs '']
@@ -66,7 +86,7 @@ Resources:
           Value: !Sub ${EnvironmentName} Private Subnet (AZA)
 
   PrivateSubnetB:
-    Type: AWS::EC2:Subnet
+    Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref Vpc
       AvailabilityZone: !Select [ 1, !GetAZs '']

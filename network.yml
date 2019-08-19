@@ -1,5 +1,5 @@
 Description: >
-  This is a cloudformation script to deploy a set of aws services infrastructure
+  This is a cloudformation script to deploy a set of aws services underlying network infrastructure
   for a higly available web-app
 
 Parameters:
@@ -95,3 +95,35 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Subnet (AZB)
+
+Outputs:
+
+  Vpc:
+    Description: Output ref to vpc
+    Value: !Ref Vpc
+    Export:
+      Name: !Sub ${EnvironmentName}-VPCID
+
+  PubicSubnets:
+    Description: List of public subnets in the network infrastructure
+    Value: !Join [ ",", [ !Ref PublicSubnetA, !Ref PublicSubnetB ]]
+    Export:
+      Name: !Sub ${EnvironmentName}-PUBLIC-SUBNETS
+
+  PrivateSubnets:
+    Description: List of private subnets in the network infrastructure
+    Value: !Join [ ",", [ !Ref PrivateSubnetA, !Ref PrivateSubnetB ]]
+    Export:
+      Name: !Sub ${EnvironmentName}-PRIVATE-SUBNETS
+
+  PublicSubnetA:
+    Description: Public subnet in availability zone A.
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: !Sub ${EnvironmentName}-PUBLIC-SUBNET-A
+
+  PublicSubnetB:
+    Description: Public subnet in availability zone B.
+    Value: !Ref PublicSubnetB
+    Export:
+      Name: !Sub ${EnvironmentName}-PUBLIC-SUBNET-B

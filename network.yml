@@ -103,18 +103,12 @@ Resources:
     DependsOn: InternetGatewayAttachment
     Properties:
       Domain: vpc
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName} EIP NatGatwayA
 
   NatGatewayEIPB:
     Type: AWS::EC2::EIP
     DependsOn: InternetGatewayAttachment
     Properties:
       Domain: vpc
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName} EIP NatGatwayB
 
   NatGatewayA:
     Type: AWS::EC2::NatGateway

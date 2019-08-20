@@ -96,6 +96,42 @@ Resources:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Subnet (AZB)
 
+  # Natgateways
+
+  NatGatewayEIPA:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGatewayEIPB:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGatewayA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIPA.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} NatGatewayA
+
+  NatGatwayB:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIPB.AllocationId
+      SubnetId: !Ref PublicSubnetB
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} NatGatewayB
+
+
+  # Routing tables for public and private subnets
+
+
 Outputs:
 
   Vpc:

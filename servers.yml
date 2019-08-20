@@ -83,36 +83,6 @@ Resources:
       Roles:
         - Ref: ApplicationIAMRole
 
-  # Bastion host
-
-  BastionSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Allows ssh into bastion host
-      VpcId:
-        Fn::ImportValue:
-          !Sub ${EnvironmentName}-VPCID
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        CidrIp: 0.0.0.0/0
-
-  BastionHost:
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: ami-06f2f779464715dc5
-      InstanceType: t2.nano
-      BlockDeviceMappings:
-      - DeviceName: "/dev/sdk"
-        Ebs:
-          VolumeSize: '5'
-      SecurityGroupIds:
-      - Ref: BastionSecurityGroup
-      SubnetId:
-        Fn::ImportValue:
-          !Sub ${EnvironmentName}-PUBLIC-SUBNET-A
-
   # Auto scaling group and launch configurations
 
   ApplicationLaunchConfig:
@@ -202,6 +172,6 @@ Resources:
 Outputs:
   LoadBalancerDNSName:
     Description: DNS name of load balancer
-    Value: !Join ["", [ "http://", !GetAtt ApplicationLoadBalancer.DNSName]]
+    Value: !Join ["", [ "http://", !GetAtt ApplicationLoadBalancer.DNSName ]]
     Export:
       Name: !Sub ${EnvironmentName}-LoadBalancer-DNSName

@@ -9,6 +9,6 @@
   },
   {
     "ParameterKey": "ServerInstanceType",
-    "ParameterValue": "t2.medium"
+    "ParameterValue": "t3.medium"
   }
 ]

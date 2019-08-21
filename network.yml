@@ -1,18 +1,233 @@
 Description: >
-  This is a cloudformation script to deploy a set of aws services infrastructure
+  This is a cloudformation script to deploy a set of aws services underlying network infrastructure
   for a higly available web-app
 
 Parameters:
-  Description: Name of the higly available web app running on this infrastructure
-  Type: String
+
+  EnvironmentName:
+    Description: Name of the higly available web app running on this infrastructure
+    Type: String
+
+  VpcCIDR:
+    Description: Range of IP for vpc.
+    Type: String
+
+  PublicSubnetACIDR:
+    Description: Range of IP for the public subnet in AZ A.
+    Type: String
+
+  PublicSubnetBCIDR:
+    Description: Range of IP for the public subnet in AZ B.
+    Type: String
+
+  PrivateSubnetACIDR:
+    Description: Range of IP for the private subnet in AZ A
+    Type: String
+
+  PrivateSubnetBCIDR:
+    Description: Range of IP for private subnet in AZ B
+    Type: String
 
 Resources:
 
   Vpc:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: 10.0.0.0/16
+      CidrBlock: !Ref VpcCIDR
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-         Value: !Ref EnvironmentName
+          Value: !Ref EnvironmentName
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref Vpc
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [ 0, !GetAZs '']
+      CidrBlock: !Ref PublicSubnetACIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet (AZA)
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [ 1, !GetAZs '']
+      CidrBlock: !Ref PublicSubnetBCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet (AZB)
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [ 0, !GetAZs '']
+      CidrBlock: !Ref PrivateSubnetACIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Subnet (AZA)
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [ 1, !GetAZs '']
+      CidrBlock: !Ref PrivateSubnetBCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Subnet (AZB)
+
+  # Natgateways
+  NatGatewayEIPA:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGatewayEIPB:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGatewayA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIPA.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} NatGatewayA
+
+  NatGatewayB:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIPB.AllocationId
+      SubnetId: !Ref PublicSubnetB
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} NatGatewayB
+
+
+  # Routing tables for public and private subnets
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Routes
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetA
+
+  PublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetB
+
+  PrivateRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Route AZ-A
+
+  DefaultPrivateRouteA:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayA
+
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableA
+      SubnetId: !Ref PrivateSubnetA
+
+  PrivateRouteTableB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Route AZ-B
+
+  DefaultPrivateRouteB:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableB
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayB
+
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableB
+      SubnetId: !Ref PrivateSubnetB
+
+
+Outputs:
+
+  Vpc:
+    Description: Output ref to vpc
+    Value: !Ref Vpc
+    Export:
+      Name: !Sub ${EnvironmentName}-VPCID
+
+  PubicSubnets:
+    Description: List of public subnets in the network infrastructure
+    Value: !Join [ ",", [ !Ref PublicSubnetA, !Ref PublicSubnetB ]]
+    Export:
+      Name: !Sub ${EnvironmentName}-PUBLIC-SUBNETS
+
+  PrivateSubnets:
+    Description: List of private subnets in the network infrastructure
+    Value: !Join [ ",", [ !Ref PrivateSubnetA, !Ref PrivateSubnetB ]]
+    Export:
+      Name: !Sub ${EnvironmentName}-PRIVATE-SUBNETS
+
+  PublicSubnetA:
+    Description: Public subnet in availability zone A.
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: !Sub ${EnvironmentName}-PUBLIC-SUBNET-A
+
+  PublicSubnetB:
+    Description: Public subnet in availability zone B.
+    Value: !Ref PublicSubnetB
+    Export:
+      Name: !Sub ${EnvironmentName}-PUBLIC-SUBNET-B
